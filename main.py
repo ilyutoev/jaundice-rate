@@ -9,8 +9,8 @@ async def fetch(session, url):
 
 
 async def main():
-    async with aiohttp.ClientSession() as session:
-        html = await fetch(session, 'http://example.com')
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+        html = await fetch(session, 'https://inosmi.ru/20220209/ukraina-252938463.html')
         print(html)
 
 
