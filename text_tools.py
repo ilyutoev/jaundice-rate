@@ -46,3 +46,14 @@ def calculate_jaundice_rate(article_words, charged_words):
 def test_calculate_jaundice_rate():
     assert -0.01 < calculate_jaundice_rate([], []) < 0.01
     assert 33.0 < calculate_jaundice_rate(['все', 'аутсайдер', 'побег'], ['аутсайдер', 'банкротство']) < 34.0
+
+
+def get_charged_words():
+    """Возвращаем заряженные слова из словарей"""
+    with open('charged_dict/positive_words.txt') as f:
+        charged_words = [line.strip() for line in f.readlines()]
+
+    with open('charged_dict/negative_words.txt') as f:
+        charged_words.extend([line.strip() for line in f.readlines()])
+
+    return charged_words

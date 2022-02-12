@@ -5,6 +5,7 @@ import pymorphy2
 
 from adapters.inosmi_ru import sanitize
 from text_tools import calculate_jaundice_rate
+from text_tools import get_charged_words
 from text_tools import split_by_words
 
 
@@ -15,6 +16,8 @@ async def fetch(session, url):
 
 
 async def main():
+    charged_words = get_charged_words()
+
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
         html = await fetch(session, 'https://inosmi.ru/20220209/ukraina-252938463.html')
     morph = pymorphy2.MorphAnalyzer()
@@ -22,9 +25,7 @@ async def main():
     text = sanitize(html, plaintext=True)
 
     article_words = split_by_words(morph, text)
-
-    test_charged_words = ['удар', 'атака', 'агрессия']
-    rate = calculate_jaundice_rate(article_words, test_charged_words)
+    rate = calculate_jaundice_rate(article_words, charged_words)
 
     print('Рейтинг: ', rate)
     print('Слов в статье: ', len(article_words))
