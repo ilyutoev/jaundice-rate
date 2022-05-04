@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 
 import pymorphy2
+from anyio import create_task_group
 
 from adapters.inosmi_ru import sanitize
 from text_tools import calculate_jaundice_rate
@@ -15,19 +16,36 @@ async def fetch(session, url):
         return await response.text()
 
 
-async def main():
-    charged_words = get_charged_words()
-
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
-        html = await fetch(session, 'https://inosmi.ru/20220209/ukraina-252938463.html')
-    morph = pymorphy2.MorphAnalyzer()
+async def process_article(session, morph, charged_words, url, title):
+    html = await fetch(session, url)
 
     text = sanitize(html, plaintext=True)
-
     article_words = split_by_words(morph, text)
     rate = calculate_jaundice_rate(article_words, charged_words)
 
-    print('Рейтинг: ', rate)
-    print('Слов в статье: ', len(article_words))
+    print('Заголовок:', title)
+    print('Рейтинг:', rate)
+    print('Слов в статье:', len(article_words))
+
+
+async def main():
+    charged_words = get_charged_words()
+
+    TEST_ARTICLES = [
+        'https://inosmi.ru/20220209/ukraina-252938463.html',
+        'https://inosmi.ru/20220504/ukraina-254051228.html',
+        'https://inosmi.ru/20220504/drova-254050630.html',
+        'https://inosmi.ru/20220504/bayden-254047336.html',
+        'https://inosmi.ru/20220504/ukraina-254051228.html',
+    ]
+    morph = pymorphy2.MorphAnalyzer()
+
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+        async with create_task_group() as tg:
+            for url in TEST_ARTICLES:
+                tg.start_soon(
+                    process_article,
+                    session, morph, charged_words, url, 'title'
+                )
 
 asyncio.run(main())
