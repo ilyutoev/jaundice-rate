@@ -4,6 +4,7 @@ import asyncio
 import pymorphy2
 from anyio import create_task_group
 
+from adapters.inosmi_ru import get_title
 from adapters.inosmi_ru import sanitize
 from text_tools import calculate_jaundice_rate
 from text_tools import get_charged_words
@@ -16,16 +17,18 @@ async def fetch(session, url):
         return await response.text()
 
 
-async def process_article(session, morph, charged_words, url, title):
+async def process_article(session, morph, charged_words, url, result):
     html = await fetch(session, url)
 
     text = sanitize(html, plaintext=True)
     article_words = split_by_words(morph, text)
     rate = calculate_jaundice_rate(article_words, charged_words)
 
-    print('Заголовок:', title)
-    print('Рейтинг:', rate)
-    print('Слов в статье:', len(article_words))
+    result.append({
+        'title': get_title(html),
+        'rate': rate,
+        'words_count': len(article_words),
+    })
 
 
 async def main():
@@ -40,12 +43,19 @@ async def main():
     ]
     morph = pymorphy2.MorphAnalyzer()
 
+    result = []
+
     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
         async with create_task_group() as tg:
             for url in TEST_ARTICLES:
                 tg.start_soon(
                     process_article,
-                    session, morph, charged_words, url, 'title'
+                    session, morph, charged_words, url, result
                 )
+
+    for article_info in result:
+        print('Заголовок:', article_info['title'])
+        print('Рейтинг:', article_info['rate'])
+        print('Слов в статье:', article_info['words_count'])
 
 asyncio.run(main())
