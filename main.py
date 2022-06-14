@@ -4,7 +4,9 @@ import asyncio
 import pymorphy2
 from aiohttp import ClientError
 from anyio import create_task_group
+from async_timeout import timeout
 
+from adapters.constants import FETCH_TIMEOUT
 from adapters.constants import ProcessingStatus
 from adapters.inosmi_ru import get_title
 from adapters.inosmi_ru import sanitize
@@ -34,10 +36,15 @@ async def process_article(session, morph, charged_words, url, result):
         return
 
     try:
-        html = await fetch(session, url)
+        async with timeout(FETCH_TIMEOUT):
+            html = await fetch(session, url)
         info['status'] = ProcessingStatus.OK
     except ClientError:
         info['status'] = ProcessingStatus.FETCH_ERROR
+        result.append(info)
+        return
+    except asyncio.TimeoutError:
+        info['status'] = ProcessingStatus.TIMEOUT
         result.append(info)
         return
 
