@@ -22,10 +22,16 @@ async def fetch(session, url):
 async def process_article(session, morph, charged_words, url, result):
 
     info = {
+        'url': url,
         'title': None,
         'rate': None,
         'words_count': None,
     }
+
+    if 'inosmi.ru' not in url:
+        info['status'] = ProcessingStatus.PARSING_ERROR
+        result.append(info)
+        return
 
     try:
         html = await fetch(session, url)
@@ -52,6 +58,7 @@ async def main():
         'https://inosmi.ru/20220504/drova-254050630.html',
         'https://inosmi.ru/20220504/bayden-254047336.html',
         'https://inosmi.ru/20220504/ukraina-25405122822.html',
+        'https://lenta.ru/'
     ]
     morph = pymorphy2.MorphAnalyzer()
 
@@ -66,6 +73,7 @@ async def main():
                 )
 
     for article_info in result:
+        print('URL:', article_info['url'])
         print('Статус:', article_info['status'].value)
         print('Заголовок:', article_info['title'])
         print('Рейтинг:', article_info['rate'])
