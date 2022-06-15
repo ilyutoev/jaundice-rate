@@ -1,3 +1,7 @@
+import contextlib
+import logging
+import time
+
 import aiohttp
 import asyncio
 
@@ -13,6 +17,18 @@ from adapters.inosmi_ru import sanitize
 from text_tools import calculate_jaundice_rate
 from text_tools import get_charged_words
 from text_tools import split_by_words
+
+
+logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def timer(url):
+    start_time = time.monotonic()
+    try:
+        yield
+    finally:
+        logger.info('Анализ для ссылки %s закончен за %s сек', url, time.monotonic() - start_time)
 
 
 async def fetch(session, url):
@@ -50,7 +66,8 @@ async def process_article(session, morph, charged_words, url, result):
 
     text = sanitize(html, plaintext=True)
     article_words = split_by_words(morph, text)
-    info['rate'] = calculate_jaundice_rate(article_words, charged_words)
+    with timer(url):
+        info['rate'] = calculate_jaundice_rate(article_words, charged_words)
     info['title'] = get_title(html)
     info['words_count'] = len(article_words),
     result.append(info)
