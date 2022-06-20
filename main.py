@@ -32,9 +32,10 @@ def timer(url):
 
 
 async def fetch(session, url):
-    async with session.get(url) as response:
-        response.raise_for_status()
-        return await response.text()
+    async with timeout(FETCH_TIMEOUT):
+        async with session.get(url) as response:
+            response.raise_for_status()
+            return await response.text()
 
 
 async def process_article(session, morph, charged_words, url, result):
@@ -52,8 +53,7 @@ async def process_article(session, morph, charged_words, url, result):
         return
 
     try:
-        async with timeout(FETCH_TIMEOUT):
-            html = await fetch(session, url)
+        html = await fetch(session, url)
         info['status'] = ProcessingStatus.OK
     except ClientError:
         info['status'] = ProcessingStatus.FETCH_ERROR
@@ -65,11 +65,16 @@ async def process_article(session, morph, charged_words, url, result):
         return
 
     text = sanitize(html, plaintext=True)
-    article_words = split_by_words(morph, text)
-    with timer(url):
-        info['rate'] = calculate_jaundice_rate(article_words, charged_words)
-    info['title'] = get_title(html)
-    info['words_count'] = len(article_words),
+
+    try:
+        with timer(url), timeout(3):
+            article_words = await split_by_words(morph, text)
+            info['rate'] = calculate_jaundice_rate(article_words, charged_words)
+            info['title'] = get_title(html)
+            info['words_count'] = len(article_words),
+    except asyncio.TimeoutError:
+        info['status'] = ProcessingStatus.TIMEOUT
+
     result.append(info)
 
 
