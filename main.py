@@ -78,9 +78,25 @@ async def process_article(session, morph, charged_words, url, result):
     result.append(info)
 
 
-async def main():
+async def process_articles(urls):
     charged_words = get_charged_words()
 
+    morph = pymorphy2.MorphAnalyzer()
+
+    result = []
+
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+        async with create_task_group() as tg:
+            for url in urls:
+                tg.start_soon(
+                    process_article,
+                    session, morph, charged_words, url, result
+                )
+
+    return result
+
+
+async def main():
     TEST_ARTICLES = [
         'https://inosmi.ru/20220209/ukraina-252938463.html',
         'https://inosmi.ru/20220504/ukraina-254051228.html',
@@ -89,23 +105,16 @@ async def main():
         'https://inosmi.ru/20220504/ukraina-25405122822.html',
         'https://lenta.ru/'
     ]
-    morph = pymorphy2.MorphAnalyzer()
 
-    result = []
+    results = await process_articles(TEST_ARTICLES)
 
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
-        async with create_task_group() as tg:
-            for url in TEST_ARTICLES:
-                tg.start_soon(
-                    process_article,
-                    session, morph, charged_words, url, result
-                )
-
-    for article_info in result:
+    for article_info in results:
         print('URL:', article_info['url'])
         print('Статус:', article_info['status'].value)
         print('Заголовок:', article_info['title'])
         print('Рейтинг:', article_info['rate'])
         print('Слов в статье:', article_info['words_count'])
 
-asyncio.run(main())
+
+if __name__ == '__main__':
+    asyncio.run(main())
