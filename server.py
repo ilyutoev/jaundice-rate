@@ -1,13 +1,19 @@
+import json
+
 from aiohttp import web
 
 from main import process_articles
 
+ARTICLE_URLS_LIMIT = 10
+
 
 async def index(request):
-    urls = []
-    for url in request.query.get('urls', '').split(','):
-        if url:
-            urls.append(url.strip())
+
+    urls = [url.strip() for url in request.query.get('urls', '').split(',') if url]
+    if len(urls) > ARTICLE_URLS_LIMIT:
+        raise web.HTTPBadRequest(
+            body=json.dumps({"error": f"too many urls in request, should be {ARTICLE_URLS_LIMIT} or less"})
+        )
 
     results = await process_articles(urls)
 
