@@ -16,10 +16,10 @@
 pip install -r requirements.txt
 ```
 
-# Как запустить
+# Как запустить сервер
 
 ```python3
-python main.py
+python server.py
 ```
 
 # Как запустить тесты
@@ -27,12 +27,9 @@ python main.py
 Для тестирования используется [pytest](https://docs.pytest.org/en/latest/), тестами покрыты фрагменты кода сложные в отладке: text_tools.py и адаптеры. Команды для запуска тестов:
 
 ```
-python -m pytest adapters/inosmi_ru.py
+python -m pytest tests
 ```
 
-```
-python -m pytest text_tools.py
-```
 
 # Цели проекта
 
